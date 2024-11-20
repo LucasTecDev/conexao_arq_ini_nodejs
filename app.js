@@ -7,9 +7,18 @@ const configFile = 'C:/Shop9/ArqID9.txt';
 
 // Função para carregar e processar o arquivo XML
 async function loadConfig(filePath) {
+    if (!fs.existsSync(filePath)) {
+        throw new Error ('Arquivo de configuracao nao encontrado: ${filePath}');
+    }
+
     const data = fs.readFileSync(filePath, 'utf-8');
     const parser = new xml2js.Parser();
     const config = await parser.parseStringPromise(data);
+
+    // Validar a estrutura esperada do XML 
+    if (!config.SHOP9 || !config.SHOP9.CONEXAO || !config.SHOP9.CONEXAO[0]) {
+        throw new Error('Estrutura inválida no arquivo de configuração XML.');
+    }
 
     // Extrair informações do arquivo XML
     const conexao = config.SHOP9.CONEXAO[0];
@@ -22,7 +31,7 @@ async function loadConfig(filePath) {
             encrypt: false, // Ajuste conforme necessário
             enableArithAbort: true,
         },
-        timeout: parseInt(conexao.Timeout[0], 10), // Apenas como referência, não usado diretamente
+        requestTimeout: conexao.Timeout ? parseInt(conexao.Timeout[0], 10) * 1000 : 30000, // Timeout em ms
     };
 }
 
@@ -35,8 +44,8 @@ async function loadConfig(filePath) {
         console.log('Conexão bem-sucedida!');
 
         // Exemplo de consulta
-        //const result = await pool.request().query('SELECT * FROM S9_Real..Funcionarios');
-        //console.log(result.recordset);
+        const result = await pool.request().query('SELECT * FROM S9_Real..Funcionarios');
+        console.log(result.recordset);
 
         // Fechar a conexão
         await pool.close();
